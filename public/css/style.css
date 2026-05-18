@@ -1,0 +1,51 @@
+/* Custom Styles for SMA Negeri 1 Tuhemberua SIAKAD */
+
+:root {
+    --primary-navy: #1a202c; /* Navy Blue */
+    --accent-blue: #3182ce; /* Light Blue */
+    --bg-soft: #f7fafc; /* Soft Gray */
+    --text-main: #2d3748;
+}
+
+body {
+    font-family: 'Inter', 'Poppins', sans-serif;
+    background-color: var(--bg-soft);
+    color: var(--text-main);
+}
+
+/* Smooth Transitions */
+.transition-all-300 {
+    transition: all 0.3s ease-in-out;
+}
+
+/* Custom Shadows */
+.card-shadow {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.card-shadow-hover:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    transform: translateY(-2px);
+}
+
+/* Sidebar Active State */
+.sidebar-link.active {
+    background-color: rgba(66, 153, 225, 0.1);
+    border-left: 4px solid var(--accent-blue);
+    color: var(--accent-blue);
+}
+
+.sidebar-link:hover:not(.active) {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: #fff;
+}
+
+/* Login Page Background */
+.login-bg {
+    background: linear-gradient(135deg, #1a202c 0%, #2c5282 100%);
+}
+
+/* Table Styles */
+.table-hover tbody tr:hover {
+    background-color: #ebf8ff;
+}
