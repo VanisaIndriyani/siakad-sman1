@@ -14,6 +14,8 @@ use Endroid\QrCode\RoundBlockSizeMode;
 use Endroid\QrCode\Writer\PngWriter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class SiswaController extends Controller
 {
@@ -100,6 +102,44 @@ class SiswaController extends Controller
         $pengumumans = Pengumuman::where('is_active', true)->latest()->paginate(10);
 
         return view('siswa.pengumuman.index', compact('pengumumans'));
+    }
+
+    public function pengumumanLampiran(Pengumuman $pengumuman)
+    {
+        if (! $pengumuman->file_path) {
+            abort(404);
+        }
+
+        if (! Storage::disk('public')->exists($pengumuman->file_path)) {
+            abort(404);
+        }
+
+        $path = Storage::disk('public')->path($pengumuman->file_path);
+        $filename = Str::slug($pengumuman->judul ?: 'lampiran').'.pdf';
+
+        return response()->file($path, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="'.$filename.'"',
+            'Cache-Control' => 'no-store, private',
+        ]);
+    }
+
+    public function pengumumanLampiranDownload(Pengumuman $pengumuman)
+    {
+        if (! $pengumuman->file_path) {
+            abort(404);
+        }
+
+        if (! Storage::disk('public')->exists($pengumuman->file_path)) {
+            abort(404);
+        }
+
+        $path = Storage::disk('public')->path($pengumuman->file_path);
+        $filename = Str::slug($pengumuman->judul ?: 'lampiran').'.pdf';
+
+        return response()->download($path, $filename, [
+            'Content-Type' => 'application/pdf',
+        ]);
     }
 
     public function profil()

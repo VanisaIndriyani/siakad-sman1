@@ -18,13 +18,13 @@
                     <p class="text-gray-600 mt-2">{{ $pengumuman->isi }}</p>
                     @if($pengumuman->file_path)
                         <div class="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
-                            <a href="{{ asset('storage/' . $pengumuman->file_path) }}" target="_blank" class="inline-flex items-center text-sm font-bold text-blue-600 hover:text-blue-800 group/link">
+                            <a href="{{ route('pengumuman.lampiran', $pengumuman->id) }}" target="_blank" class="inline-flex items-center text-sm font-bold text-blue-600 hover:text-blue-800 group/link">
                                 <div class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center mr-3 group-hover/link:bg-blue-100 transition-colors">
                                     <i class="fas fa-file-pdf"></i>
                                 </div>
                                 <span>Lampiran Pengumuman (PDF)</span>
                             </a>
-                            <a href="{{ asset('storage/' . $pengumuman->file_path) }}" download class="text-xs font-bold text-gray-400 hover:text-blue-600 transition-colors uppercase tracking-widest flex items-center gap-2">
+                            <a href="{{ route('pengumuman.lampiran.download', $pengumuman->id) }}" class="text-xs font-bold text-gray-400 hover:text-blue-600 transition-colors uppercase tracking-widest flex items-center gap-2">
                                 <i class="fas fa-download"></i> Unduh
                             </a>
                         </div>

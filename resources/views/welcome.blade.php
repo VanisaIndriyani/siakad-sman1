@@ -235,7 +235,7 @@
                         
                         @if($pengumuman->file_path)
                         <div class="mt-auto">
-                            <a href="{{ asset('storage/' . $pengumuman->file_path) }}" target="_blank" class="inline-flex items-center text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 hover:bg-blue-100 transition-all">
+                            <a href="{{ route('pengumuman.lampiran', $pengumuman->id) }}" target="_blank" class="inline-flex items-center text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 hover:bg-blue-100 transition-all">
                                 <i class="fas fa-file-pdf mr-2"></i> Lihat Lampiran
                             </a>
                         </div>

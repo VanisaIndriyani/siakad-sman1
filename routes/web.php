@@ -39,6 +39,9 @@ Route::get('/login', [DashboardController::class, 'login'])->name('login');
 Route::post('/login', [DashboardController::class, 'authenticate'])->name('login.post');
 Route::post('/logout', [DashboardController::class, 'logout'])->name('logout');
 
+Route::get('/pengumuman/{pengumuman}/lampiran', [SiswaController::class, 'pengumumanLampiran'])->name('pengumuman.lampiran');
+Route::get('/pengumuman/{pengumuman}/lampiran/download', [SiswaController::class, 'pengumumanLampiranDownload'])->name('pengumuman.lampiran.download');
+
 Route::get('/assets/html5-qrcode.min.js', function () {
     $version = '2.3.8';
     $cacheFile = storage_path("app/html5-qrcode-{$version}.min.js");
