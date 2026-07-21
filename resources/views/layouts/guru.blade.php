@@ -119,6 +119,13 @@
                     <i class="fas fa-clipboard-check w-6 text-center group-hover:text-green-400"></i>
                     <span class="ml-3">Review Raport</span>
                 </a>
+
+                <p class="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-6 mb-3">Pengaturan</p>
+
+                <a href="{{ route('guru.profile.index') }}" class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-slate-800/50 hover:text-white group {{ request()->routeIs('guru.profile.*') ? 'active' : '' }}">
+                    <i class="fas fa-user-cog w-6 text-center group-hover:text-green-400"></i>
+                    <span class="ml-3">Profil Saya</span>
+                </a>
             </nav>
 
             <!-- User Profile -->
@@ -252,5 +259,6 @@
             }
         });
     </script>
+    @stack('scripts')
 </body>
 </html>

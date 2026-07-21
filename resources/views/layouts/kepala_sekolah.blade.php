@@ -109,9 +109,12 @@
                     <span class="ml-3">Monitoring Absensi</span>
                 </a>
 
-              
+                <p class="px-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-8 mb-4">Pengaturan</p>
 
-               
+                <a href="{{ route('kepala_sekolah.profile.index') }}" class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-gray-800/50 hover:text-white group {{ request()->routeIs('kepala_sekolah.profile.*') ? 'active' : '' }}">
+                    <i class="fas fa-user-cog w-6 text-center group-hover:text-blue-400"></i>
+                    <span class="ml-3">Profil Saya</span>
+                </a>
             </nav>
 
             <!-- User Profile (Inside Scrollable Area) -->

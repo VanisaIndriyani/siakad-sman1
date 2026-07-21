@@ -4,6 +4,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\GuruController;
 use App\Http\Controllers\KepalaSekolahController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SiswaController;
 use App\Models\Guru;
 use App\Models\Kelas;
@@ -116,13 +117,15 @@ Route::middleware('auth')->group(function () {
         Route::delete('/pengumuman/{id}', [AdminController::class, 'destroyPengumuman'])->name('pengumuman.destroy');
 
         // Profile Settings
-        Route::get('/profile', [AdminController::class, 'profile'])->name('profile.index');
-        Route::put('/profile', [AdminController::class, 'updateProfile'])->name('profile.update');
+        Route::get('/profile', [ProfileController::class, 'show'])->name('profile.index');
+        Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
     });
 
     // Guru Routes
     Route::prefix('guru')->name('guru.')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'guru'])->name('dashboard');
+        Route::get('/profile', [ProfileController::class, 'show'])->name('profile.index');
+        Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
         Route::get('/nilai', [GuruController::class, 'nilai'])->name('nilai.index');
         Route::post('/nilai', [GuruController::class, 'storeNilai'])->name('nilai.store');
         Route::get('/jadwal', [GuruController::class, 'jadwal'])->name('jadwal.index');
@@ -137,7 +140,8 @@ Route::middleware('auth')->group(function () {
     // Siswa Routes
     Route::prefix('siswa')->name('siswa.')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'siswa'])->name('dashboard');
-        Route::get('/profil', [SiswaController::class, 'profil'])->name('profil');
+        Route::get('/profil', [ProfileController::class, 'show'])->name('profil');
+        Route::put('/profil', [ProfileController::class, 'update'])->name('profile.update');
         Route::get('/qr.png', [SiswaController::class, 'qrPng'])->name('qr.png');
         Route::get('/qr.pdf', [SiswaController::class, 'qrPdf'])->name('qr.pdf');
         Route::get('/nilai', [SiswaController::class, 'nilai'])->name('nilai.index');
@@ -150,6 +154,8 @@ Route::middleware('auth')->group(function () {
     // Kepala Sekolah Routes
     Route::prefix('kepala-sekolah')->name('kepala_sekolah.')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'kepalaSekolah'])->name('dashboard');
+        Route::get('/profile', [ProfileController::class, 'show'])->name('profile.index');
+        Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
         Route::get('/laporan-akademik', [KepalaSekolahController::class, 'laporanAkademik'])->name('laporan.akademik');
         Route::get('/monitoring-nilai', [KepalaSekolahController::class, 'monitoringNilai'])->name('monitoring.nilai');
         Route::get('/monitoring-absensi', [KepalaSekolahController::class, 'monitoringAbsensi'])->name('monitoring.absensi');

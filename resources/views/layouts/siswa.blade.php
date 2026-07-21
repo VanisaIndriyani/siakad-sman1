@@ -107,9 +107,9 @@
                     <i class="fas fa-calendar-alt w-6 text-center group-hover:text-yellow-400"></i>
                     <span class="ml-3">Jadwal Pelajaran</span>
                 </a>
-                <a href="{{ route('siswa.profil') }}" class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-slate-800/50 hover:text-white group {{ request()->routeIs('siswa.profil') ? 'active' : '' }}">
+                <a href="{{ route('siswa.profil') }}" class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-slate-800/50 hover:text-white group {{ request()->routeIs('siswa.profil') || request()->routeIs('siswa.profile.*') ? 'active' : '' }}">
                     <i class="fas fa-id-card w-6 text-center group-hover:text-yellow-400"></i>
-                    <span class="ml-3">Profil </span>
+                    <span class="ml-3">Profil Saya</span>
                 </a>
                 <a href="{{ route('siswa.nilai.index') }}" class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-slate-800/50 hover:text-white group {{ request()->routeIs('siswa.nilai.index') ? 'active' : '' }}">
                     <i class="fas fa-star w-6 text-center group-hover:text-yellow-400"></i>
@@ -256,5 +256,6 @@
             }
         });
     </script>
+    @stack('scripts')
 </body>
 </html>
