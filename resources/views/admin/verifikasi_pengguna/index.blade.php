@@ -83,7 +83,7 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 text-sm">
-                    @forelse($pendingUsers as $user)
+                    @forelse($users as $user)
                     <tr class="hover:bg-slate-50/70 transition-colors">
                         <td class="px-6 py-4">
                             <div class="flex items-center">
@@ -247,7 +247,7 @@
         </div>
 
         <div class="p-6 border-t border-slate-100">
-            {{ $pendingUsers->appends(request()->query())->links('pagination.number-123') }}
+            {{ $users->appends(request()->query())->links('pagination.number-123') }}
         </div>
     </div>
 

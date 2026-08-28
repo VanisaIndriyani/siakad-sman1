@@ -1349,7 +1349,7 @@ class AdminController extends Controller
 
     public function verifikasiPengguna(Request $request)
     {
-        $query = User::with(['guru', 'siswa'])->whereIn('status', ['pending', 'rejected', 'inactive']);
+        $query = User::with(['guru', 'siswa']);
 
         if ($request->has('status') && $request->status != '') {
             $query->where('status', $request->status);
@@ -1368,12 +1368,12 @@ class AdminController extends Controller
             });
         }
 
-        $pendingUsers = $query->latest()->paginate(15);
+        $users = $query->latest()->paginate(15);
         $activeCount = User::where('status', 'active')->count();
         $pendingCount = User::where('status', 'pending')->count();
         $rejectedCount = User::where('status', 'rejected')->count();
 
-        return view('admin.verifikasi_pengguna.index', compact('pendingUsers', 'activeCount', 'pendingCount', 'rejectedCount'));
+        return view('admin.verifikasi_pengguna.index', compact('users', 'activeCount', 'pendingCount', 'rejectedCount'));
     }
 
     public function approveUser($id)
