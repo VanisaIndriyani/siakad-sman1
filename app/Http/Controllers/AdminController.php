@@ -1116,7 +1116,11 @@ class AdminController extends Controller
             'tahun_ajaran' => '2025/2026',
         ]);
 
-        $this->notifyJadwalChanged($jadwal, true);
+        try {
+            $this->notifyJadwalChanged($jadwal, true);
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         return redirect()->route('admin.jadwal.index')->with('success', 'Jadwal berhasil ditambahkan');
     }
@@ -1145,7 +1149,11 @@ class AdminController extends Controller
             'ruangan' => $request->ruangan,
         ]);
 
-        $this->notifyJadwalChanged($jadwal->fresh(), false);
+        try {
+            $this->notifyJadwalChanged($jadwal->fresh(), false);
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         return redirect()->route('admin.jadwal.index')->with('success', 'Jadwal berhasil diperbarui');
     }
@@ -1488,7 +1496,7 @@ class AdminController extends Controller
                 "Jadwal {$mapelNama} kelas {$kelasNama} pada hari {$jadwal->hari} {$jadwal->jam_mulai}-{$jadwal->jam_selesai}{$ruangan} telah {$action}.",
                 $isNew ? 'success' : 'warning',
                 'fa-calendar-plus',
-                route('guru.jadwal')
+                route('guru.jadwal.index')
             );
         }
 
@@ -1508,7 +1516,7 @@ class AdminController extends Controller
                     $msgSiswa,
                     $isNew ? 'info' : 'warning',
                     'fa-calendar-alt',
-                    route('siswa.jadwal')
+                    route('siswa.jadwal.index')
                 );
             }
         }
