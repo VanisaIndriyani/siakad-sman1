@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Admin Dashboard') - SIAKAD SMAN 1 Tuhemberua</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -101,6 +102,17 @@
                     <span class="ml-3">Dashboard</span>
                 </a>
 
+                <a href="{{ route('notifikasi.index') }}" class="sidebar-link flex items-center justify-between px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-slate-800/50 hover:text-white group {{ request()->routeIs('notifikasi.*') ? 'active' : '' }}">
+                    <span class="flex items-center">
+                        <i class="fas fa-bell w-6 text-center group-hover:text-blue-400"></i>
+                        <span class="ml-3">Notifikasi</span>
+                    </span>
+                    @php $adminUnread = auth()->user()->unread_count ?? 0; @endphp
+                    @if($adminUnread > 0)
+                        <span class="ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-bold text-white bg-red-500 rounded-full">{{ $adminUnread > 99 ? '99+' : $adminUnread }}</span>
+                    @endif
+                </a>
+
                 <p class="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-6 mb-3">Master Data</p>
                 
                 <a href="{{ route('admin.guru.index') }}" class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-slate-800/50 hover:text-white group {{ request()->routeIs('admin.guru.*') ? 'active' : '' }}">
@@ -137,6 +149,59 @@
                 <a href="{{ route('admin.pengumuman.index') }}" class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-slate-800/50 hover:text-white group {{ request()->routeIs('admin.pengumuman.*') ? 'active' : '' }}">
                     <i class="fas fa-bullhorn w-6 text-center group-hover:text-blue-400"></i>
                     <span class="ml-3">Pengumuman</span>
+                </a>
+
+                <p class="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-6 mb-3">Verifikasi & Laporan</p>
+
+                <a href="{{ route('admin.verifikasi-pengguna.index') }}" class="sidebar-link flex items-center justify-between px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-slate-800/50 hover:text-white group {{ request()->routeIs('admin.verifikasi-pengguna.*') ? 'active' : '' }}">
+                    <span class="flex items-center">
+                        <i class="fas fa-user-check w-6 text-center group-hover:text-blue-400"></i>
+                        <span class="ml-3">Verifikasi Pengguna</span>
+                    </span>
+                    @php
+                        $pendingBadgeCount = \App\Models\User::where('status', 'pending')->count();
+                    @endphp
+                    @if($pendingBadgeCount > 0)
+                        <span class="ml-auto px-2 py-0.5 text-[10px] font-bold text-white bg-amber-500 rounded-full">{{ $pendingBadgeCount }}</span>
+                    @endif
+                </a>
+                <a href="{{ route('admin.laporan-masalah.index') }}" class="sidebar-link flex items-center justify-between px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-slate-800/50 hover:text-white group {{ request()->routeIs('admin.laporan-masalah.*') ? 'active' : '' }}">
+                    <span class="flex items-center">
+                        <i class="fas fa-headset w-6 text-center group-hover:text-blue-400"></i>
+                        <span class="ml-3">Laporan Masalah</span>
+                    </span>
+                    @php
+                        $openLaporan = \App\Models\LaporanMasalah::whereIn('status', ['open', 'in_progress'])->count();
+                    @endphp
+                    @if($openLaporan > 0)
+                        <span class="ml-auto px-2 py-0.5 text-[10px] font-bold text-white bg-red-500 rounded-full">{{ $openLaporan }}</span>
+                    @endif
+                </a>
+
+                <p class="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-6 mb-3">Bantuan & Kebijakan</p>
+
+                <a href="{{ route('bantuan.faq') }}" class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-slate-800/50 hover:text-white group {{ request()->routeIs('bantuan.faq') ? 'active' : '' }}">
+                    <i class="fas fa-circle-question w-6 text-center group-hover:text-blue-400"></i>
+                    <span class="ml-3">FAQ</span>
+                </a>
+                <a href="{{ route('bantuan.kebijakan') }}" class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-slate-800/50 hover:text-white group {{ request()->routeIs('bantuan.kebijakan') || request()->routeIs('bantuan.kebijakan.show') ? 'active' : '' }}">
+                    <i class="fas fa-shield-halved w-6 text-center group-hover:text-blue-400"></i>
+                    <span class="ml-3">Kebijakan Sistem</span>
+                </a>
+                <a href="{{ route('bantuan.lapor') }}" class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-slate-800/50 hover:text-white group {{ request()->routeIs('bantuan.lapor') ? 'active' : '' }}">
+                    <i class="fas fa-circle-exclamation w-6 text-center group-hover:text-blue-400"></i>
+                    <span class="ml-3">Laporkan Masalah</span>
+                </a>
+
+                <p class="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-6 mb-3">Kelola Konten</p>
+
+                <a href="{{ route('admin.faq.index') }}" class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-slate-800/50 hover:text-white group {{ request()->routeIs('admin.faq.*') ? 'active' : '' }}">
+                    <i class="fas fa-question-circle w-6 text-center group-hover:text-blue-400"></i>
+                    <span class="ml-3">Kelola FAQ</span>
+                </a>
+                <a href="{{ route('admin.kebijakan.index') }}" class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-slate-800/50 hover:text-white group {{ request()->routeIs('admin.kebijakan.*') ? 'active' : '' }}">
+                    <i class="fas fa-file-contract w-6 text-center group-hover:text-blue-400"></i>
+                    <span class="ml-3">Kelola Kebijakan</span>
                 </a>
 
                 <p class="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-6 mb-3">Pengaturan</p>
@@ -194,12 +259,7 @@
                 </div>
 
                 <!-- Notifications -->
-                <div class="relative group">
-                    <button class="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition-all border border-slate-100">
-                        <i class="fas fa-bell text-lg"></i>
-                        <span class="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 border-2 border-white rounded-full"></span>
-                    </button>
-                </div>
+                @include('partials.notifikasi_dropdown')
 
                 <!-- Profile Mobile -->
                 <div class="lg:hidden">
@@ -248,8 +308,8 @@
         <footer class="bg-white border-t border-slate-100 py-8 px-10 flex flex-col md:flex-row items-center justify-between gap-4">
             <p class="text-sm text-slate-500">&copy; 2026 <span class="font-bold text-slate-800">SMA Negeri 1 Tuhemberua</span>. All rights reserved.</p>
             <div class="flex items-center gap-6">
-                <a href="#" class="text-xs font-bold text-slate-400 hover:text-blue-600 transition-colors uppercase tracking-widest">Bantuan</a>
-                <a href="#" class="text-xs font-bold text-slate-400 hover:text-blue-600 transition-colors uppercase tracking-widest">Kebijakan</a>
+                <a href="{{ route('bantuan.index') }}" class="text-xs font-bold text-slate-400 hover:text-blue-600 transition-colors uppercase tracking-widest">Bantuan</a>
+                <a href="{{ route('bantuan.kebijakan') }}" class="text-xs font-bold text-slate-400 hover:text-blue-600 transition-colors uppercase tracking-widest">Kebijakan</a>
             </div>
         </footer>
     </div>

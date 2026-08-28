@@ -10,70 +10,69 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        // Admin
         User::create([
             'name' => 'Administrator',
             'username' => 'admin',
             'email' => 'admin@sman1tuhemberua.sch.id',
             'password' => Hash::make('password'),
             'role' => 'admin',
+            'status' => 'active',
         ]);
 
-        // Kepala Sekolah
         User::create([
             'name' => 'Kepala Sekolah',
             'username' => 'kepsek',
             'email' => 'kepsek@sman1tuhemberua.sch.id',
             'password' => Hash::make('password'),
             'role' => 'kepala_sekolah',
+            'status' => 'active',
         ]);
 
-        // Guru 1 (Budi Santoso)
         User::create([
             'name' => 'Budi Santoso',
             'username' => 'budi',
             'email' => 'budi@sman1tuhemberua.sch.id',
             'password' => Hash::make('password'),
             'role' => 'guru',
+            'status' => 'active',
         ]);
 
-        // Guru 2 (Siti Rahma)
         User::create([
             'name' => 'Siti Rahma',
             'username' => 'siti',
             'email' => 'siti@sman1tuhemberua.sch.id',
             'password' => Hash::make('password'),
             'role' => 'guru',
+            'status' => 'active',
         ]);
 
-         // Guru 3 (Joko Susilo)
          User::create([
             'name' => 'Joko Susilo',
             'username' => 'joko',
             'email' => 'joko@sman1tuhemberua.sch.id',
             'password' => Hash::make('password'),
             'role' => 'guru',
+            'status' => 'active',
         ]);
 
-        // Siswa 1 (Andi Pratama)
         User::create([
             'name' => 'Andi Pratama',
             'username' => 'andi',
             'email' => 'andi@siswa.sman1tuhemberua.sch.id',
             'password' => Hash::make('password'),
             'role' => 'siswa',
+            'status' => 'active',
         ]);
 
-        // Siswa 2 (Siti Aminah)
         User::create([
             'name' => 'Siti Aminah',
             'username' => 'aminah',
             'email' => 'aminah@siswa.sman1tuhemberua.sch.id',
             'password' => Hash::make('password'),
             'role' => 'siswa',
+            'status' => 'active',
         ]);
 
-        // Tenaga Kependidikan (6 Orang)
         for ($i = 1; $i <= 6; $i++) {
             User::create([
                 'name' => 'Tendik ' . $i,
@@ -81,6 +80,7 @@ class UserSeeder extends Seeder
                 'email' => 'tendik' . $i . '@sman1tuhemberua.sch.id',
                 'password' => Hash::make('password'),
                 'role' => 'tendik',
+                'status' => 'active',
             ]);
         }
     }

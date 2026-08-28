@@ -302,6 +302,24 @@ class AdminController extends Controller
             'is_active' => true,
         ]);
 
+        $judulPeng = $request->judul;
+        $pengId = \App\Models\Pengumuman::latest()->value('id');
+        $urlPeng = route('home') . '#pengumuman-' . $pengId;
+
+        User::whereIn('role', ['admin', 'guru', 'siswa', 'kepala_sekolah'])
+            ->where('status', 'active')
+            ->chunkById(100, function ($users) use ($judulPeng, $urlPeng) {
+                foreach ($users as $u) {
+                    $u->addNotification(
+                        'Pengumuman Baru',
+                        "Pengumuman baru tersedia: {$judulPeng}. Silakan baca informasinya.",
+                        'info',
+                        'fa-bullhorn',
+                        $urlPeng
+                    );
+                }
+            });
+
         return redirect()->back()->with('success', 'Pengumuman berhasil ditambahkan');
     }
 
@@ -1086,7 +1104,7 @@ class AdminController extends Controller
             'ruangan' => 'nullable|string',
         ]);
 
-        Jadwal::create([
+        $jadwal = Jadwal::create([
             'kelas_id' => $request->kelas_id,
             'mapel_id' => $request->mapel_id,
             'guru_id' => $request->guru_id,
@@ -1094,9 +1112,11 @@ class AdminController extends Controller
             'jam_mulai' => $request->jam_mulai,
             'jam_selesai' => $request->jam_selesai,
             'ruangan' => $request->ruangan,
-            'semester' => 'Genap', // Default
-            'tahun_ajaran' => '2025/2026', // Default
+            'semester' => 'Genap',
+            'tahun_ajaran' => '2025/2026',
         ]);
+
+        $this->notifyJadwalChanged($jadwal, true);
 
         return redirect()->route('admin.jadwal.index')->with('success', 'Jadwal berhasil ditambahkan');
     }
@@ -1124,6 +1144,8 @@ class AdminController extends Controller
             'jam_selesai' => $request->jam_selesai,
             'ruangan' => $request->ruangan,
         ]);
+
+        $this->notifyJadwalChanged($jadwal->fresh(), false);
 
         return redirect()->route('admin.jadwal.index')->with('success', 'Jadwal berhasil diperbarui');
     }
@@ -1315,5 +1337,370 @@ class AdminController extends Controller
         $pdf->setPaper('a4', 'portrait');
 
         return $pdf->stream('laporan-absensi.pdf');
+    }
+
+    public function verifikasiPengguna(Request $request)
+    {
+        $query = User::with(['guru', 'siswa'])->whereIn('status', ['pending', 'rejected', 'inactive']);
+
+        if ($request->has('status') && $request->status != '') {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->has('role') && $request->role != '') {
+            $query->where('role', $request->role);
+        }
+
+        if ($request->has('search') && $request->search != '') {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('username', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        $pendingUsers = $query->latest()->paginate(15);
+        $activeCount = User::where('status', 'active')->count();
+        $pendingCount = User::where('status', 'pending')->count();
+        $rejectedCount = User::where('status', 'rejected')->count();
+
+        return view('admin.verifikasi_pengguna.index', compact('pendingUsers', 'activeCount', 'pendingCount', 'rejectedCount'));
+    }
+
+    public function approveUser($id)
+    {
+        $user = User::findOrFail($id);
+
+        if (! in_array($user->status, ['pending', 'rejected', 'inactive'])) {
+            return back()->with('error', 'Status akun tidak dapat diubah.');
+        }
+
+        $user->update([
+            'status' => 'active',
+            'rejection_note' => null,
+        ]);
+
+        if ($user->role === 'guru' && $user->guru) {
+            $user->guru->update(['is_active' => true]);
+        }
+
+        $roleLabel = match ($user->role) {
+            'guru' => 'Guru',
+            'siswa' => 'Siswa',
+            'kepala_sekolah' => 'Kepala Sekolah',
+            'admin' => 'Admin',
+            'tendik' => 'Tenaga Kependidikan',
+            default => ucfirst($user->role),
+        };
+        $user->addNotification(
+            'Akun Disetujui',
+            "Selamat! Akun {$roleLabel} Anda telah disetujui oleh Admin. Silakan login untuk mengakses sistem.",
+            'success',
+            'fa-check-circle',
+            route('login')
+        );
+
+        return back()->with('success', "Akun {$user->name} berhasil disetujui dan dapat login.");
+    }
+
+    public function rejectUser(Request $request, $id)
+    {
+        $request->validate([
+            'rejection_note' => 'nullable|string|max:500',
+        ]);
+
+        $user = User::findOrFail($id);
+
+        if (! in_array($user->status, ['pending', 'active', 'inactive'])) {
+            return back()->with('error', 'Status akun tidak dapat diubah.');
+        }
+
+        $user->update([
+            'status' => 'rejected',
+            'rejection_note' => $request->rejection_note,
+        ]);
+
+        if ($user->role === 'guru' && $user->guru) {
+            $user->guru->update(['is_active' => false]);
+        }
+
+        $note = $request->rejection_note ? " Alasan: {$request->rejection_note}" : '';
+        $roleLabel = match ($user->role) {
+            'guru' => 'Guru',
+            'siswa' => 'Siswa',
+            'kepala_sekolah' => 'Kepala Sekolah',
+            'admin' => 'Admin',
+            'tendik' => 'Tenaga Kependidikan',
+            default => ucfirst($user->role),
+        };
+        $user->addNotification(
+            'Akun Ditolak',
+            "Mohon maaf, akun {$roleLabel} Anda ditolak oleh Admin.{$note}",
+            'danger',
+            'fa-times-circle',
+            null
+        );
+
+        return back()->with('success', "Akun {$user->name} berhasil ditolak.");
+    }
+
+    public function deactivateUser($id)
+    {
+        $user = User::findOrFail($id);
+
+        if ($user->status !== 'active') {
+            return back()->with('error', 'Hanya akun Active yang dapat dinonaktifkan.');
+        }
+
+        $user->update([
+            'status' => 'inactive',
+        ]);
+
+        if ($user->role === 'guru' && $user->guru) {
+            $user->guru->update(['is_active' => false]);
+        }
+
+        $roleLabel = $user->role === 'guru' ? 'Guru' : ($user->role === 'siswa' ? 'Siswa' : ($user->role === 'kepala_sekolah' ? 'Kepala Sekolah' : $user->role));
+        $user->addNotification(
+            'Akun Dinonaktifkan',
+            "Akun {$roleLabel} Anda telah dinonaktifkan oleh Admin. Silakan hubungi Admin untuk informasi lebih lanjut.",
+            'warning',
+            'fa-ban',
+            null
+        );
+
+        return back()->with('success', "Akun {$user->name} berhasil dinonaktifkan.");
+    }
+
+    private function notifyJadwalChanged(Jadwal $jadwal, bool $isNew): void
+    {
+        $jadwal->loadMissing(['kelas', 'mapel', 'guru.user']);
+
+        $kelasNama = $jadwal->kelas?->nama_kelas ?? 'Kelas';
+        $mapelNama = $jadwal->mapel?->nama_mapel ?? 'Mapel';
+        $ruangan = $jadwal->ruangan ? " (Ruangan: {$jadwal->ruangan})" : '';
+        $action = $isNew ? 'ditambahkan' : 'diperbarui';
+
+        if ($jadwal->guru && $jadwal->guru->user && $jadwal->guru->user->status === 'active') {
+            $jadwal->guru->user->addNotification(
+                "Jadwal Mengajar {$action}",
+                "Jadwal {$mapelNama} kelas {$kelasNama} pada hari {$jadwal->hari} {$jadwal->jam_mulai}-{$jadwal->jam_selesai}{$ruangan} telah {$action}.",
+                $isNew ? 'success' : 'warning',
+                'fa-calendar-plus',
+                route('guru.jadwal')
+            );
+        }
+
+        $siswasNotif = Siswa::where('kelas_id', $jadwal->kelas_id)
+            ->with('user')
+            ->whereHas('user', function ($q) {
+                $q->where('status', 'active');
+            })
+            ->get();
+
+        $titleSiswa = "Jadwal Pelajaran {$action}";
+        $msgSiswa = "Jadwal {$mapelNama} hari {$jadwal->hari} {$jadwal->jam_mulai}-{$jadwal->jam_selesai}{$ruangan} untuk kelas {$kelasNama} telah {$action}.";
+        foreach ($siswasNotif as $s) {
+            if ($s->user) {
+                $s->user->addNotification(
+                    $titleSiswa,
+                    $msgSiswa,
+                    $isNew ? 'info' : 'warning',
+                    'fa-calendar-alt',
+                    route('siswa.jadwal')
+                );
+            }
+        }
+    }
+
+    public function resetPassword(Request $request, $id)
+    {
+        $request->validate([
+            'password' => 'required|string|min:6|confirmed',
+        ]);
+
+        $user = User::findOrFail($id);
+
+        $user->update([
+            'password' => $request->password,
+        ]);
+
+        $roleLabel = $user->role === 'guru' ? 'Guru' : ($user->role === 'siswa' ? 'Siswa' : ($user->role === 'kepala_sekolah' ? 'Kepala Sekolah' : $user->role));
+        $user->addNotification(
+            'Password Direset oleh Admin',
+            "Password akun {$roleLabel} Anda telah direset oleh Admin. Silakan gunakan password baru untuk login dan segera ganti password Anda.",
+            'warning',
+            'fa-key',
+            route('login')
+        );
+
+        return back()->with('success', "Password akun {$user->name} berhasil direset.");
+    }
+
+    public function laporanMasalah(Request $request)
+    {
+        $query = \App\Models\LaporanMasalah::with(['user', 'admin']);
+
+        if ($request->has('status') && $request->status != '') {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->has('kategori') && $request->kategori != '') {
+            $query->where('kategori', $request->kategori);
+        }
+
+        $laporans = $query->latest()->paginate(15);
+
+        return view('admin.laporan_masalah.index', compact('laporans'));
+    }
+
+    public function responLaporanMasalah(Request $request, $id)
+    {
+        $request->validate([
+            'status' => 'required|in:open,in_progress,resolved,closed',
+            'respon_admin' => 'nullable|string|max:1000',
+        ]);
+
+        $laporan = \App\Models\LaporanMasalah::findOrFail($id);
+        $admin = Auth::user();
+
+        $laporan->update([
+            'status' => $request->status,
+            'respon_admin' => $request->respon_admin,
+            'admin_id' => $admin->id,
+            'resolved_at' => in_array($request->status, ['resolved', 'closed']) ? now() : null,
+        ]);
+
+        if ($laporan->user) {
+            $statusLabel = [
+                'open' => 'Dibuka',
+                'in_progress' => 'Diproses',
+                'resolved' => 'Selesai',
+                'closed' => 'Ditutup',
+            ];
+
+            $laporan->user->addNotification(
+                "Laporan Masalah: {$statusLabel[$request->status]}",
+                "Laporan Anda dengan subjek '{$laporan->subject}' telah diperbarui. Status: {$statusLabel[$request->status]}." . ($request->respon_admin ? " Respon: {$request->respon_admin}" : ''),
+                $request->status === 'resolved' ? 'success' : 'info',
+                'fa-headset',
+                route('bantuan.lapor')
+            );
+        }
+
+        return back()->with('success', 'Laporan masalah berhasil diperbarui.');
+    }
+
+    public function kelolaFaq(Request $request)
+    {
+        $faqs = \App\Models\Faq::orderBy('sort_order')->paginate(20);
+        return view('admin.faq.index', compact('faqs'));
+    }
+
+    public function storeFaq(Request $request)
+    {
+        $request->validate([
+            'question' => 'required|string|max:500',
+            'answer' => 'required|string|max:5000',
+            'for_role' => 'required|in:all,admin,guru,siswa,kepala_sekolah',
+            'sort_order' => 'nullable|integer|min:0|max:999',
+            'is_active' => 'nullable|boolean',
+        ]);
+
+        \App\Models\Faq::create([
+            'question' => $request->question,
+            'answer' => $request->answer,
+            'for_role' => $request->for_role,
+            'sort_order' => $request->sort_order ?? 0,
+            'is_active' => $request->has('is_active'),
+        ]);
+
+        return back()->with('success', 'FAQ berhasil ditambahkan.');
+    }
+
+    public function updateFaq(Request $request, $id)
+    {
+        $faq = \App\Models\Faq::findOrFail($id);
+
+        $request->validate([
+            'question' => 'required|string|max:500',
+            'answer' => 'required|string|max:5000',
+            'for_role' => 'required|in:all,admin,guru,siswa,kepala_sekolah',
+            'sort_order' => 'nullable|integer|min:0|max:999',
+            'is_active' => 'nullable|boolean',
+        ]);
+
+        $faq->update([
+            'question' => $request->question,
+            'answer' => $request->answer,
+            'for_role' => $request->for_role,
+            'sort_order' => $request->sort_order ?? 0,
+            'is_active' => $request->has('is_active'),
+        ]);
+
+        return back()->with('success', 'FAQ berhasil diperbarui.');
+    }
+
+    public function destroyFaq($id)
+    {
+        \App\Models\Faq::findOrFail($id)->delete();
+        return back()->with('success', 'FAQ berhasil dihapus.');
+    }
+
+    public function kelolaKebijakan(Request $request)
+    {
+        $kebijakans = \App\Models\Kebijakan::latest()->paginate(15);
+        return view('admin.kebijakan.index', compact('kebijakans'));
+    }
+
+    public function storeKebijakan(Request $request)
+    {
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'slug' => 'required|string|max:255|unique:kebijakans,slug',
+            'content' => 'required|string|max:10000',
+            'for_role' => 'required|in:all,admin,guru,siswa,kepala_sekolah',
+            'is_active' => 'nullable|boolean',
+        ]);
+
+        \App\Models\Kebijakan::create([
+            'title' => $request->title,
+            'slug' => $request->slug,
+            'content' => $request->content,
+            'for_role' => $request->for_role,
+            'is_active' => $request->has('is_active'),
+        ]);
+
+        return back()->with('success', 'Kebijakan berhasil ditambahkan.');
+    }
+
+    public function updateKebijakan(Request $request, $id)
+    {
+        $kebijakan = \App\Models\Kebijakan::findOrFail($id);
+
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'slug' => 'required|string|max:255|unique:kebijakans,slug,' . $kebijakan->id,
+            'content' => 'required|string|max:10000',
+            'for_role' => 'required|in:all,admin,guru,siswa,kepala_sekolah',
+            'is_active' => 'nullable|boolean',
+        ]);
+
+        $kebijakan->update([
+            'title' => $request->title,
+            'slug' => $request->slug,
+            'content' => $request->content,
+            'for_role' => $request->for_role,
+            'is_active' => $request->has('is_active'),
+        ]);
+
+        return back()->with('success', 'Kebijakan berhasil diperbarui.');
+    }
+
+    public function destroyKebijakan($id)
+    {
+        \App\Models\Kebijakan::findOrFail($id)->delete();
+        return back()->with('success', 'Kebijakan berhasil dihapus.');
     }
 }

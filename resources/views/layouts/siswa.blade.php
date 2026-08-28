@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Siswa Dashboard') - SIAKAD SMAN 1 Tuhemberua</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -101,6 +102,17 @@
                     <span class="ml-3">Dashboard</span>
                 </a>
 
+                <a href="{{ route('notifikasi.index') }}" class="sidebar-link flex items-center justify-between px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-slate-800/50 hover:text-white group {{ request()->routeIs('notifikasi.*') ? 'active' : '' }}">
+                    <span class="flex items-center">
+                        <i class="fas fa-bell w-6 text-center group-hover:text-yellow-400"></i>
+                        <span class="ml-3">Notifikasi</span>
+                    </span>
+                    @php $siswaUnread = auth()->user()->unread_count ?? 0; @endphp
+                    @if($siswaUnread > 0)
+                        <span class="ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-bold text-white bg-red-500 rounded-full">{{ $siswaUnread > 99 ? '99+' : $siswaUnread }}</span>
+                    @endif
+                </a>
+
                 <p class="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-6 mb-3">Akademik</p>
                 
                 <a href="{{ route('siswa.jadwal.index') }}" class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-slate-800/50 hover:text-white group {{ request()->routeIs('siswa.jadwal.index') ? 'active' : '' }}">
@@ -122,6 +134,21 @@
                 <a href="{{ route('siswa.pengumuman.index') }}" class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-slate-800/50 hover:text-white group {{ request()->routeIs('siswa.pengumuman.index') ? 'active' : '' }}">
                     <i class="fas fa-bullhorn w-6 text-center group-hover:text-yellow-400"></i>
                     <span class="ml-3">Pengumuman</span>
+                </a>
+
+                <p class="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-6 mb-3">Bantuan & Kebijakan</p>
+
+                <a href="{{ route('bantuan.faq') }}" class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-slate-800/50 hover:text-white group {{ request()->routeIs('bantuan.faq') ? 'active' : '' }}">
+                    <i class="fas fa-circle-question w-6 text-center group-hover:text-yellow-400"></i>
+                    <span class="ml-3">FAQ</span>
+                </a>
+                <a href="{{ route('bantuan.kebijakan') }}" class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-slate-800/50 hover:text-white group {{ request()->routeIs('bantuan.kebijakan') || request()->routeIs('bantuan.kebijakan.show') ? 'active' : '' }}">
+                    <i class="fas fa-shield-halved w-6 text-center group-hover:text-yellow-400"></i>
+                    <span class="ml-3">Kebijakan Sistem</span>
+                </a>
+                <a href="{{ route('bantuan.lapor') }}" class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-slate-800/50 hover:text-white group {{ request()->routeIs('bantuan.lapor') ? 'active' : '' }}">
+                    <i class="fas fa-circle-exclamation w-6 text-center group-hover:text-yellow-400"></i>
+                    <span class="ml-3">Laporkan Masalah</span>
                 </a>
             </nav>
 
@@ -172,12 +199,7 @@
                 </div>
 
                 <!-- Notifications -->
-                <div class="relative group">
-                    <button class="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 hover:bg-yellow-50 hover:text-yellow-600 transition-all border border-slate-100">
-                        <i class="fas fa-bell text-lg"></i>
-                        <span class="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 border-2 border-white rounded-full"></span>
-                    </button>
-                </div>
+                @include('partials.notifikasi_dropdown')
 
                 <!-- Profile Mobile -->
                 <div class="lg:hidden">
@@ -226,8 +248,8 @@
         <footer class="bg-white border-t border-slate-100 py-8 px-10 flex flex-col md:flex-row items-center justify-between gap-4">
             <p class="text-sm text-slate-500">&copy; 2026 <span class="font-bold text-slate-800">SMA Negeri 1 Tuhemberua</span>. All rights reserved.</p>
             <div class="flex items-center gap-6">
-                <a href="#" class="text-xs font-bold text-slate-400 hover:text-yellow-600 transition-colors uppercase tracking-widest">Bantuan</a>
-                <a href="#" class="text-xs font-bold text-slate-400 hover:text-yellow-600 transition-colors uppercase tracking-widest">Kebijakan</a>
+                <a href="{{ route('bantuan.index') }}" class="text-xs font-bold text-slate-400 hover:text-yellow-600 transition-colors uppercase tracking-widest">Bantuan</a>
+                <a href="{{ route('bantuan.kebijakan') }}" class="text-xs font-bold text-slate-400 hover:text-yellow-600 transition-colors uppercase tracking-widest">Kebijakan</a>
             </div>
         </footer>
     </div>

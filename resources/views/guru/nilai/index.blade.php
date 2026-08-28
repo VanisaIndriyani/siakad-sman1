@@ -58,35 +58,6 @@
 
         <!-- Input Form -->
         <div class="lg:col-span-3">
-            @if(session('success'))
-                <div class="bg-green-50 border-l-4 border-green-500 p-4 mb-4 rounded-r-lg shadow-sm">
-                    <div class="flex">
-                        <div class="flex-shrink-0">
-                            <i class="fas fa-check-circle text-green-500"></i>
-                        </div>
-                        <div class="ml-3">
-                            <p class="text-sm text-green-700">
-                                {{ session('success') }}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            @endif
-
-            @if(session('error'))
-                <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-4 rounded-r-lg shadow-sm">
-                    <div class="flex">
-                        <div class="flex-shrink-0">
-                            <i class="fas fa-exclamation-circle text-red-500"></i>
-                        </div>
-                        <div class="ml-3">
-                            <p class="text-sm text-red-700">
-                                {{ session('error') }}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            @endif
 
             @if(count($siswas) > 0)
             <div class="bg-white rounded-xl border border-gray-100 card-shadow overflow-hidden">

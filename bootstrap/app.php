@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Middleware\CheckRole;
+use App\Http\Middleware\CheckUserStatus;
+use App\Http\Middleware\NoCacheAuthenticated;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -11,8 +14,14 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->web(append: [
+            NoCacheAuthenticated::class,
+        ]);
+        $middleware->alias([
+            'role' => CheckRole::class,
+            'user.status' => CheckUserStatus::class,
+            'no.cache.auth' => NoCacheAuthenticated::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
     })->create();

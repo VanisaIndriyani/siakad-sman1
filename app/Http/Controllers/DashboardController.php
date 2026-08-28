@@ -6,82 +6,119 @@ use App\Models\Absensi;
 use App\Models\Guru;
 use App\Models\Kelas;
 use App\Models\Mapel;
+use App\Models\Notifikasi;
 use App\Models\Pengumuman;
 use App\Models\Siswa;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 
 class DashboardController extends Controller
 {
     public function login()
     {
+        if (Auth::check()) {
+            $role = Auth::user()->role;
+            return match ($role) {
+                'admin' => redirect()->route('admin.dashboard'),
+                'guru' => redirect()->route('guru.dashboard'),
+                'siswa' => redirect()->route('siswa.dashboard'),
+                'kepala_sekolah' => redirect()->route('kepala_sekolah.dashboard'),
+                default => redirect('/'),
+            };
+        }
+
         return view('auth.login');
     }
 
     public function authenticate(Request $request)
     {
         $request->validate([
-            'username' => ['required'],
-            'password' => ['required'],
+            'username' => ['required', 'string'],
+            'password' => ['required', 'string', 'min:4'],
+        ], [], [
+            'username' => 'Username',
+            'password' => 'Password',
         ]);
 
-        $loginId = $request->username;
-        $password = $request->password;
+        $GENERIC_ERROR = 'Username atau password salah.';
+        $STATUS_BLOCKED = 'Akun Anda tidak dapat diakses saat ini. Silakan hubungi Admin.';
 
-        // Determine login type and find user
-        $user = null;
+        $throttleKey = 'login|' . Str::lower($request->username) . '|' . $request->ip();
 
-        // 1. Check by Email
-        if (filter_var($loginId, FILTER_VALIDATE_EMAIL)) {
-            $user = \App\Models\User::where('email', $loginId)->first();
-        } 
-        // 2. Check by Username, NIP, or NISN
-        else {
-            // First check by Username (fallback)
-            $user = \App\Models\User::where('username', $loginId)->first();
-            
-            // If not found, check by NIP (Guru)
-            if (!$user) {
-                $guru = \App\Models\Guru::where('nip', $loginId)->first();
-                if ($guru) {
-                    $user = $guru->user;
-                }
-            }
-
-            // If not found, check by NISN (Siswa)
-            if (!$user) {
-                $siswa = \App\Models\Siswa::where('nisn', $loginId)->first();
-                if ($siswa) {
-                    $user = $siswa->user;
-                }
-            }
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            $seconds = RateLimiter::availableIn($throttleKey);
+            return back()->withErrors([
+                'username' => "Terlalu banyak percobaan login. Silakan coba lagi dalam {$seconds} detik.",
+            ])->onlyInput('username');
         }
 
-        // Attempt login if user found
-        if ($user && \Illuminate\Support\Facades\Hash::check($password, $user->password)) {
-            Auth::login($user);
-            $request->session()->regenerate();
+        $credentials = [
+            'username' => trim($request->username),
+            'password' => $request->password,
+        ];
 
-            $role = Auth::user()->role;
+        $genericFail = function () use ($throttleKey, $request, $GENERIC_ERROR) {
+            RateLimiter::hit($throttleKey, 60);
+            return back()->withErrors([
+                'username' => $GENERIC_ERROR,
+            ])->onlyInput('username');
+        };
 
-            switch ($role) {
-                case 'admin':
-                    return redirect()->route('admin.dashboard');
-                case 'guru':
-                    return redirect()->route('guru.dashboard');
-                case 'siswa':
-                    return redirect()->route('siswa.dashboard');
-                case 'kepala_sekolah':
-                    return redirect()->route('kepala_sekolah.dashboard');
-                default:
-                    Auth::logout();
-                    return redirect()->back()->with('error', 'Role tidak valid');
-            }
+        if (! Auth::validate($credentials)) {
+            return $genericFail();
         }
 
-        return back()->withErrors([
-            'username' => 'Login gagal. Periksa kembali ID Pengguna (Email/NIP/NISN) dan Password Anda.',
-        ]);
+        $user = Auth::getProvider()->retrieveByCredentials(['username' => $credentials['username']]);
+
+        if (! $user) {
+            return $genericFail();
+        }
+
+        if ($user->status === 'pending') {
+            RateLimiter::hit($throttleKey, 60);
+            return back()->withErrors([
+                'username' => 'Akun Anda masih menunggu verifikasi Admin. Silakan tunggu atau hubungi Admin.',
+            ])->onlyInput('username');
+        }
+
+        if ($user->status === 'rejected') {
+            $note = $user->rejection_note ? ' Alasan: ' . $user->rejection_note : '';
+            RateLimiter::hit($throttleKey, 60);
+            return back()->withErrors([
+                'username' => 'Akun Anda ditolak oleh Admin.' . $note,
+            ])->onlyInput('username');
+        }
+
+        if ($user->status === 'inactive') {
+            RateLimiter::hit($throttleKey, 60);
+            return back()->withErrors([
+                'username' => 'Akun Anda dinonaktifkan. Silakan hubungi Admin.',
+            ])->onlyInput('username');
+        }
+
+        Auth::login($user, $request->filled('remember'));
+        RateLimiter::clear($throttleKey);
+        $request->session()->regenerate();
+        $request->session()->put('auth_logged_in_at', now()->toIso8601String());
+
+        $role = Auth::user()->role;
+
+        return match ($role) {
+            'admin' => redirect()->route('admin.dashboard'),
+            'guru' => redirect()->route('guru.dashboard'),
+            'siswa' => redirect()->route('siswa.dashboard'),
+            'kepala_sekolah' => redirect()->route('kepala_sekolah.dashboard'),
+            default => (function () {
+                Auth::logout();
+                request()->session()->invalidate();
+                request()->session()->regenerateToken();
+                return redirect()->route('login')->with('error', 'Role tidak valid');
+            })(),
+        };
     }
 
     public function admin()
@@ -90,29 +127,25 @@ class DashboardController extends Controller
         $totalSiswa = Siswa::count();
         $totalKelas = Kelas::count();
         $totalMapel = Mapel::count();
+        $totalPendingUsers = User::where('status', 'pending')->count();
+        $totalOpenLaporan = \App\Models\LaporanMasalah::whereIn('status', ['open', 'in_progress'])->count();
 
-        return view('admin.dashboard', compact('totalGuru', 'totalSiswa', 'totalKelas', 'totalMapel'));
+        return view('admin.dashboard', compact('totalGuru', 'totalSiswa', 'totalKelas', 'totalMapel', 'totalPendingUsers', 'totalOpenLaporan'));
     }
 
     public function guru()
     {
         $guru = Auth::user()->guru;
-        
-        if (!$guru) {
-             return redirect()->route('login')->withErrors(['msg' => 'Data guru tidak ditemukan.']);
+
+        if (! $guru) {
+            Auth::logout();
+            return redirect()->route('login')->withErrors(['msg' => 'Data guru tidak ditemukan.']);
         }
 
-        // Get classes taught by this guru (distinct from jadwals)
         $kelasDiampu = $guru->jadwals()->with('kelas')->get()->pluck('kelas')->unique('id');
         $kelasDiampuCount = $kelasDiampu->count();
         $kelasDiampuList = $kelasDiampu->pluck('nama_kelas')->implode(', ');
 
-        // Get today's schedule
-        // Note: Carbon::now()->isoFormat('dddd') returns localized day name if locale is set, 
-        // but let's assume standard English or mapped. 
-        // Ideally we should use a consistent mapping. 
-        // For this demo, let's just fetch all and filter in view or assume Monday for demo purposes if today is weekend.
-        
         $daysMap = [
             'Sunday' => 'Minggu',
             'Monday' => 'Senin',
@@ -123,7 +156,7 @@ class DashboardController extends Controller
             'Saturday' => 'Sabtu',
         ];
         $today = $daysMap[date('l')];
-        
+
         $jadwalHariIni = $guru->jadwals()->where('hari', $today)->with(['kelas', 'mapel'])->orderBy('jam_mulai')->get();
         $jadwalHariIniCount = $jadwalHariIni->count();
 
@@ -133,25 +166,24 @@ class DashboardController extends Controller
     public function siswa()
     {
         $siswa = Auth::user()->siswa;
-        
-        if (!$siswa) {
-             return redirect()->route('login')->withErrors(['msg' => 'Data siswa tidak ditemukan.']);
+
+        if (! $siswa) {
+            Auth::logout();
+            return redirect()->route('login')->withErrors(['msg' => 'Data siswa tidak ditemukan.']);
         }
 
         $rataRataNilai = $siswa->nilais()->avg('nilai') ?? 0;
         $nilaiTerbaru = $siswa->nilais()->with('mapel')->latest()->take(3)->get();
-        
-        // Calculate Attendance Percentage
+
         $totalAbsensi = Absensi::where('siswa_id', $siswa->id)->count();
         $hadirCount = Absensi::where('siswa_id', $siswa->id)->where('status', 'Hadir')->count();
-        $kehadiranPercentage = $totalAbsensi > 0 ? ($hadirCount / $totalAbsensi) * 100 : 100; // Default 100% if no data
+        $kehadiranPercentage = $totalAbsensi > 0 ? ($hadirCount / $totalAbsensi) * 100 : 100;
 
-        // Fetch Announcements
         $pengumumans = Pengumuman::where('is_active', true)->latest()->take(3)->get();
-        
+
         return view('siswa.dashboard', compact('siswa', 'rataRataNilai', 'nilaiTerbaru', 'kehadiranPercentage', 'pengumumans'));
     }
-    
+
     public function kepalaSekolah()
     {
         $totalGuru = Guru::count();
@@ -159,25 +191,34 @@ class DashboardController extends Controller
         $totalKelas = Kelas::count();
         $totalMapel = Mapel::count();
 
-        // Additional stats for Kepsek
         $rataRataNilaiSekolah = \App\Models\Nilai::avg('nilai') ?? 0;
         $totalAbsensiHariIni = \App\Models\Absensi::whereDate('tanggal', date('Y-m-d'))->count();
-        
+
         return view('kepala_sekolah.dashboard', compact(
-            'totalGuru', 
-            'totalSiswa', 
-            'totalKelas', 
+            'totalGuru',
+            'totalSiswa',
+            'totalKelas',
             'totalMapel',
             'rataRataNilaiSekolah',
             'totalAbsensiHariIni'
         ));
     }
-    
+
     public function logout(Request $request)
     {
         Auth::logout();
+
+        $request->session()->flush();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-        return redirect('/');
+        $request->session()->regenerate(true);
+
+        $response = redirect()->route('login')->with('success', 'Anda telah keluar dari sistem.');
+
+        $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0, post-check=0, pre-check=0');
+        $response->headers->set('Pragma', 'no-cache');
+        $response->headers->set('Expires', 'Thu, 01 Jan 1970 00:00:00 GMT');
+
+        return $response;
     }
 }

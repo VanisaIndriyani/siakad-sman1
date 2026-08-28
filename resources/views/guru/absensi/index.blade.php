@@ -79,13 +79,6 @@
                 <span class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded">{{ count($siswas) }} Siswa</span>
             </div>
 
-            @if(session('success'))
-                <div class="mx-6 mt-6 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg flex items-center">
-                    <i class="fas fa-check-circle mr-2"></i>
-                    {{ session('success') }}
-                </div>
-            @endif
-
             <form action="{{ route('guru.absensi.store') }}" method="POST">
                 @csrf
                 <input type="hidden" name="kelas_id" value="{{ $selectedKelasId }}">

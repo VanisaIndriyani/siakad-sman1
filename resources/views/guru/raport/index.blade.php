@@ -6,19 +6,6 @@
 @section('content')
 <div class="space-y-6">
     <div class="bg-white rounded-xl border border-gray-100 card-shadow p-6">
-        @if(session('error'))
-            <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
-                <div class="flex">
-                    <div class="flex-shrink-0">
-                        <i class="fas fa-exclamation-circle text-red-500"></i>
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-sm text-red-700">{{ session('error') }}</p>
-                    </div>
-                </div>
-            </div>
-        @endif
-
         @if($kelas)
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                 <div>

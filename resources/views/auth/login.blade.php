@@ -92,17 +92,26 @@
                     </div>
                 @endif
 
+                @if (session('success'))
+                    <div class="bg-emerald-50 border-l-4 border-emerald-500 text-emerald-700 p-4 rounded-lg mb-6 shadow-sm" role="alert">
+                        <div class="flex items-center">
+                            <i class="fas fa-check-circle mr-3"></i>
+                            <span class="text-sm font-medium">{{ session('success') }}</span>
+                        </div>
+                    </div>
+                @endif
+
                 <form action="{{ route('login.post') }}" method="POST" class="space-y-6">
                     @csrf
                     
-                    <!-- Username/Email/NIP/NISN -->
+                    <!-- Username -->
                     <div class="group">
-                        <label for="username" class="block text-sm font-bold text-slate-700 mb-2">ID Pengguna</label>
+                        <label for="username" class="block text-sm font-bold text-slate-700 mb-2">Username</label>
                         <div class="relative transition-all duration-300 focus-within:transform focus-within:scale-[1.02]">
                             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                 <i class="fas fa-user text-slate-400 group-focus-within:text-blue-500 transition-colors"></i>
                             </div>
-                            <input type="text" id="username" name="username" class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none text-slate-800 font-medium placeholder:text-slate-400" placeholder="Email / NIP / NISN" required>
+                            <input type="text" id="username" name="username" class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none text-slate-800 font-medium placeholder:text-slate-400" placeholder="Masukkan Username" required>
                         </div>
                     </div>
 
@@ -120,7 +129,7 @@
                     <!-- Remember Me & Forgot Password -->
                     <div class="flex items-center justify-between text-sm">
                         <label class="flex items-center text-slate-600 cursor-pointer group">
-                            <input type="checkbox" class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 transition-colors">
+                            <input type="checkbox" name="remember" id="remember" value="1" class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 transition-colors">
                             <span class="ml-2 group-hover:text-slate-800 transition-colors">Ingat Saya</span>
                         </label>
                    
@@ -131,6 +140,13 @@
                         <span>Masuk Sekarang</span>
                         <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
                     </button>
+
+                    <div class="text-center pt-1">
+                        <p class="text-xs md:text-sm text-slate-500 font-medium">
+                            Belum punya akun?
+                            <a href="{{ route('register') }}" class="text-emerald-600 font-bold hover:text-emerald-700 hover:underline transition-colors">Daftar disini</a>
+                        </p>
+                    </div>
                 </form>
             </div>
             

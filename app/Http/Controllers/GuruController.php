@@ -8,9 +8,11 @@ use App\Models\Kelas;
 use App\Models\Mapel;
 use App\Models\Nilai;
 use App\Models\Siswa;
+use App\Models\User;
 use App\Services\WhatsappService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class GuruController extends Controller
 {
@@ -313,23 +315,69 @@ class GuruController extends Controller
         $guru = Auth::user()->guru;
 
         $catatan = $request->catatan ?? [];
+        $affectedSiswaIds = [];
 
-        foreach ($request->nilai as $siswaId => $nilaiValue) {
-            if ($nilaiValue !== null) {
-                Nilai::updateOrCreate(
-                    [
-                        'siswa_id' => $siswaId,
-                        'mapel_id' => $request->mapel_id,
-                        'guru_id' => $guru->id,
-                        'kategori' => $request->kategori,
-                        'semester' => 'Genap', // Hardcoded for now
-                        'tahun_ajaran' => '2025/2026', // Hardcoded for now
-                    ],
-                    [
-                        'nilai' => $nilaiValue,
-                        'catatan' => $catatan[$siswaId] ?? null,
-                    ]
-                );
+        DB::transaction(function () use ($request, $guru, $catatan, &$affectedSiswaIds) {
+            foreach ($request->nilai as $siswaId => $nilaiValue) {
+                if ($nilaiValue !== null) {
+                    $affectedSiswaIds[] = (int) $siswaId;
+                    Nilai::updateOrCreate(
+                        [
+                            'siswa_id' => $siswaId,
+                            'mapel_id' => $request->mapel_id,
+                            'guru_id' => $guru->id,
+                            'kategori' => $request->kategori,
+                            'semester' => 'Genap',
+                            'tahun_ajaran' => '2025/2026',
+                        ],
+                        [
+                            'nilai' => $nilaiValue,
+                            'catatan' => $catatan[$siswaId] ?? null,
+                        ]
+                    );
+                }
+            }
+        });
+
+        $mapel = Mapel::find($request->mapel_id);
+        $kelas = Kelas::find($request->kelas_id);
+        $kategoriLabel = match ($request->kategori) {
+            'uh' => 'Ulangan Harian',
+            'uts' => 'UTS',
+            'uas' => 'UAS',
+            'tugas' => 'Tugas',
+            default => ucfirst($request->kategori),
+        };
+        $mapelNama = $mapel?->nama_mapel ?? 'Mapel';
+        $kelasNama = $kelas?->nama_kelas ?? 'Kelas';
+
+        $admins = User::where('role', 'admin')->where('status', 'active')->get();
+        $title = "Nilai Baru Masuk: {$kategoriLabel} {$mapelNama}";
+        $message = "Guru {$guru->nama_lengkap} telah memasukkan {$kategoriLabel} {$mapelNama} untuk {$kelasNama}. Silakan periksa/verifikasi nilai.";
+        foreach ($admins as $admin) {
+            $admin->addNotification(
+                $title,
+                $message,
+                'warning',
+                'fa-clipboard-check',
+                route('admin.nilai.index') . '?kelas_id=' . $request->kelas_id . '&mapel_id=' . $request->mapel_id
+            );
+        }
+
+        if (count($affectedSiswaIds) > 0) {
+            $siswasNotif = Siswa::whereIn('id', $affectedSiswaIds)->with('user')->get();
+            $titleSiswa = "Nilai Baru: {$kategoriLabel} {$mapelNama}";
+            $messageSiswa = "Nilai {$kategoriLabel} {$mapelNama} kelas {$kelasNama} sudah tersedia. Silakan cek nilai Anda.";
+            foreach ($siswasNotif as $s) {
+                if ($s->user && $s->user->status === 'active') {
+                    $s->user->addNotification(
+                        $titleSiswa,
+                        $messageSiswa,
+                        'info',
+                        'fa-chart-line',
+                        route('siswa.nilai')
+                    );
+                }
             }
         }
 

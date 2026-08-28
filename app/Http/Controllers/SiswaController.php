@@ -142,6 +142,110 @@ class SiswaController extends Controller
         ]);
     }
 
+    public function raport()
+    {
+        $siswa = Auth::user()->siswa;
+
+        if (! $siswa) {
+            return redirect()->back()->with('error', 'Data siswa tidak ditemukan.');
+        }
+
+        $nilaiMapel = $siswa->nilais()
+            ->with(['mapel', 'guru'])
+            ->get()
+            ->groupBy('mapel_id')
+            ->map(function ($items) {
+                $mapel = $items->first()->mapel;
+                $tugas = (float) $items->where('kategori', 'Tugas')->avg('nilai');
+                $uts = (float) $items->where('kategori', 'UTS')->avg('nilai');
+                $uas = (float) $items->where('kategori', 'UAS')->avg('nilai');
+                $rata = round(($tugas * 0.3) + ($uts * 0.3) + ($uas * 0.4), 2);
+                $kkm = $mapel?->kkm ?? 70;
+                return (object) [
+                    'mapel' => $mapel,
+                    'guru' => $items->first()->guru,
+                    'tugas' => $tugas,
+                    'uts' => $uts,
+                    'uas' => $uas,
+                    'rata' => $rata,
+                    'kkm' => $kkm,
+                    'status' => $rata >= $kkm ? 'TUNTAS' : 'BELUM TUNTAS',
+                ];
+            })->values();
+
+        $summary = [
+            'total_mapel' => $nilaiMapel->count(),
+            'rata_rata_akhir' => $nilaiMapel->isNotEmpty() ? round($nilaiMapel->avg('rata'), 2) : 0,
+            'nilai_tertinggi' => $nilaiMapel->isNotEmpty() ? round($nilaiMapel->max('rata'), 2) : 0,
+            'nilai_terendah' => $nilaiMapel->isNotEmpty() ? round($nilaiMapel->min('rata'), 2) : 0,
+            'tuntas' => $nilaiMapel->where('status', 'TUNTAS')->count(),
+            'tidak_tuntas' => $nilaiMapel->where('status', 'BELUM TUNTAS')->count(),
+        ];
+
+        $absensiSummary = [
+            'Hadir' => Absensi::where('siswa_id', $siswa->id)->where('status', 'Hadir')->count(),
+            'Izin' => Absensi::where('siswa_id', $siswa->id)->where('status', 'Izin')->count(),
+            'Sakit' => Absensi::where('siswa_id', $siswa->id)->where('status', 'Sakit')->count(),
+            'Alpa' => Absensi::where('siswa_id', $siswa->id)->where('status', 'Alpa')->count(),
+        ];
+
+        return view('siswa.raport.index', compact('siswa', 'nilaiMapel', 'summary', 'absensiSummary'));
+    }
+
+    public function exportRaportPdf()
+    {
+        $siswa = Auth::user()->siswa;
+
+        if (! $siswa) {
+            return redirect()->back()->with('error', 'Data siswa tidak ditemukan.');
+        }
+
+        $nilaiMapel = $siswa->nilais()
+            ->with(['mapel', 'guru'])
+            ->get()
+            ->groupBy('mapel_id')
+            ->map(function ($items) {
+                $mapel = $items->first()->mapel;
+                $tugas = (float) $items->where('kategori', 'Tugas')->avg('nilai');
+                $uts = (float) $items->where('kategori', 'UTS')->avg('nilai');
+                $uas = (float) $items->where('kategori', 'UAS')->avg('nilai');
+                $rata = round(($tugas * 0.3) + ($uts * 0.3) + ($uas * 0.4), 2);
+                $kkm = $mapel?->kkm ?? 70;
+                return (object) [
+                    'mapel' => $mapel,
+                    'guru' => $items->first()->guru,
+                    'tugas' => $tugas,
+                    'uts' => $uts,
+                    'uas' => $uas,
+                    'rata' => $rata,
+                    'kkm' => $kkm,
+                    'status' => $rata >= $kkm ? 'TUNTAS' : 'BELUM TUNTAS',
+                ];
+            })->values();
+
+        $summary = [
+            'total_mapel' => $nilaiMapel->count(),
+            'rata_rata_akhir' => $nilaiMapel->isNotEmpty() ? round($nilaiMapel->avg('rata'), 2) : 0,
+            'nilai_tertinggi' => $nilaiMapel->isNotEmpty() ? round($nilaiMapel->max('rata'), 2) : 0,
+            'nilai_terendah' => $nilaiMapel->isNotEmpty() ? round($nilaiMapel->min('rata'), 2) : 0,
+            'tuntas' => $nilaiMapel->where('status', 'TUNTAS')->count(),
+            'tidak_tuntas' => $nilaiMapel->where('status', 'BELUM TUNTAS')->count(),
+        ];
+
+        $absensiSummary = [
+            'Hadir' => Absensi::where('siswa_id', $siswa->id)->where('status', 'Hadir')->count(),
+            'Izin' => Absensi::where('siswa_id', $siswa->id)->where('status', 'Izin')->count(),
+            'Sakit' => Absensi::where('siswa_id', $siswa->id)->where('status', 'Sakit')->count(),
+            'Alpa' => Absensi::where('siswa_id', $siswa->id)->where('status', 'Alpa')->count(),
+        ];
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('siswa.raport.pdf', compact('siswa', 'nilaiMapel', 'summary', 'absensiSummary'));
+        $pdf->setPaper('a4', 'portrait');
+        $filename = 'raport-'.($siswa->nisn ?: $siswa->id).'-'.now()->format('Y').'.pdf';
+
+        return $pdf->download($filename);
+    }
+
     public function profil()
     {
         $siswa = Auth::user()->siswa;

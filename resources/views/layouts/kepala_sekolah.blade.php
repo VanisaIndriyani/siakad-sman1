@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Dashboard Kepala Sekolah') - SIAKAD SMAN 1 Tuhemberua</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -94,6 +95,17 @@
                     <span class="ml-3">Dashboard</span>
                 </a>
 
+                <a href="{{ route('notifikasi.index') }}" class="sidebar-link flex items-center justify-between px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-gray-800/50 hover:text-white group {{ request()->routeIs('notifikasi.*') ? 'active' : '' }}">
+                    <span class="flex items-center">
+                        <i class="fas fa-bell w-6 text-center group-hover:text-blue-400"></i>
+                        <span class="ml-3">Notifikasi</span>
+                    </span>
+                    @php $kepsekUnread = auth()->user()->unread_count ?? 0; @endphp
+                    @if($kepsekUnread > 0)
+                        <span class="ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-bold text-white bg-red-500 rounded-full">{{ $kepsekUnread > 99 ? '99+' : $kepsekUnread }}</span>
+                    @endif
+                </a>
+
                 <p class="px-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-8 mb-4">Monitoring & Laporan</p>
                 
                 <a href="{{ route('kepala_sekolah.laporan.akademik') }}" class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-gray-800/50 hover:text-white group {{ request()->routeIs('kepala_sekolah.laporan.akademik') ? 'active' : '' }}">
@@ -107,6 +119,21 @@
                 <a href="{{ route('kepala_sekolah.monitoring.absensi') }}" class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-gray-800/50 hover:text-white group {{ request()->routeIs('kepala_sekolah.monitoring.absensi') ? 'active' : '' }}">
                     <i class="fas fa-user-check w-6 text-center group-hover:text-blue-400"></i>
                     <span class="ml-3">Monitoring Absensi</span>
+                </a>
+
+                <p class="px-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-8 mb-4">Bantuan & Kebijakan</p>
+
+                <a href="{{ route('bantuan.faq') }}" class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-gray-800/50 hover:text-white group {{ request()->routeIs('bantuan.faq') ? 'active' : '' }}">
+                    <i class="fas fa-circle-question w-6 text-center group-hover:text-blue-400"></i>
+                    <span class="ml-3">FAQ</span>
+                </a>
+                <a href="{{ route('bantuan.kebijakan') }}" class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-gray-800/50 hover:text-white group {{ request()->routeIs('bantuan.kebijakan') || request()->routeIs('bantuan.kebijakan.show') ? 'active' : '' }}">
+                    <i class="fas fa-shield-halved w-6 text-center group-hover:text-blue-400"></i>
+                    <span class="ml-3">Kebijakan Sistem</span>
+                </a>
+                <a href="{{ route('bantuan.lapor') }}" class="sidebar-link flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-gray-800/50 hover:text-white group {{ request()->routeIs('bantuan.lapor') ? 'active' : '' }}">
+                    <i class="fas fa-circle-exclamation w-6 text-center group-hover:text-blue-400"></i>
+                    <span class="ml-3">Laporkan Masalah</span>
                 </a>
 
                 <p class="px-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-8 mb-4">Pengaturan</p>
