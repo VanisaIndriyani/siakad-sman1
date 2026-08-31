@@ -302,87 +302,160 @@ class GuruController extends Controller
         return view('guru.nilai.index', compact('kelasDiampu', 'mapelDiampu', 'siswas', 'selectedKelasId', 'selectedMapelId', 'selectedKategori'));
     }
 
-    public function storeNilai(Request $request)
-    {
-        $request->validate([
-            'kelas_id' => 'required',
-            'mapel_id' => 'required',
-            'kategori' => 'required',
-            'nilai' => 'required|array',
-            'nilai.*' => 'numeric|min:0|max:100|nullable',
-        ]);
+  public function storeNilai(Request $request)
+{
+    $request->validate([
+        'kelas_id' => 'required|integer',
+        'mapel_id' => 'required|integer',
+        'kategori' => 'required|string',
+        'nilai' => 'required|array',
+        'nilai.*' => 'nullable|numeric|min:0|max:100',
+        'catatan' => 'nullable|array',
+    ]);
 
-        $guru = Auth::user()->guru;
+    $guru = Auth::user()->guru;
 
-        $catatan = $request->catatan ?? [];
-        $affectedSiswaIds = [];
+    if (!$guru) {
+        return redirect()->back()->with('error', 'Data guru tidak ditemukan.');
+    }
 
-        DB::transaction(function () use ($request, $guru, $catatan, &$affectedSiswaIds) {
+    // Pastikan guru memang mengajar kelas dan mapel tersebut
+    $mengajar = Jadwal::where('guru_id', $guru->id)
+        ->where('kelas_id', $request->kelas_id)
+        ->where('mapel_id', $request->mapel_id)
+        ->exists();
+
+    if (!$mengajar) {
+        return redirect()->back()->with(
+            'error',
+            'Anda tidak memiliki akses untuk menginput nilai pada kelas dan mata pelajaran ini.'
+        );
+    }
+
+    try {
+
+        DB::transaction(function () use ($request, $guru) {
+
             foreach ($request->nilai as $siswaId => $nilaiValue) {
-                if ($nilaiValue !== null) {
-                    $affectedSiswaIds[] = (int) $siswaId;
-                    Nilai::updateOrCreate(
-                        [
-                            'siswa_id' => $siswaId,
-                            'mapel_id' => $request->mapel_id,
-                            'guru_id' => $guru->id,
-                            'kategori' => $request->kategori,
-                            'semester' => 'Genap',
-                            'tahun_ajaran' => '2025/2026',
-                        ],
-                        [
-                            'nilai' => $nilaiValue,
-                            'catatan' => $catatan[$siswaId] ?? null,
-                        ]
-                    );
+
+                // Lewati jika nilai kosong
+                if ($nilaiValue === null || $nilaiValue === '') {
+                    continue;
                 }
+
+                // Pastikan siswa benar-benar berada di kelas yang dipilih
+                $siswa = Siswa::where('id', $siswaId)
+                    ->where('kelas_id', $request->kelas_id)
+                    ->first();
+
+                if (!$siswa) {
+                    continue;
+                }
+
+                Nilai::updateOrCreate(
+                    [
+                        'siswa_id' => $siswa->id,
+                        'mapel_id' => $request->mapel_id,
+                        'guru_id' => $guru->id,
+                        'kategori' => $request->kategori,
+                        'semester' => 'Genap',
+                        'tahun_ajaran' => '2025/2026',
+                    ],
+                    [
+                        'nilai' => $nilaiValue,
+                        'catatan' => $request->catatan[$siswaId] ?? null,
+                    ]
+                );
             }
         });
 
+    } catch (\Throwable $e) {
+
+        // Simpan error ke log Laravel
+        \Log::error('Gagal menyimpan nilai', [
+            'error' => $e->getMessage(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+            'guru_id' => $guru->id ?? null,
+            'kelas_id' => $request->kelas_id,
+            'mapel_id' => $request->mapel_id,
+            'kategori' => $request->kategori,
+        ]);
+
+        return redirect()->back()->with(
+            'error',
+            'Nilai gagal disimpan. Silakan coba lagi.'
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | NOTIFIKASI ADMIN
+    |--------------------------------------------------------------------------
+    | Dibuat terpisah supaya kalau notifikasi error,
+    | proses simpan nilai tetap berhasil.
+    */
+
+    try {
+
         $mapel = Mapel::find($request->mapel_id);
         $kelas = Kelas::find($request->kelas_id);
-        $kategoriLabel = match ($request->kategori) {
-            'uh' => 'Ulangan Harian',
+
+        $kategoriLabel = match (strtolower($request->kategori)) {
+            'uh1' => 'Ulangan Harian 1',
+            'uh2' => 'Ulangan Harian 2',
+            'uh3' => 'Ulangan Harian 3',
             'uts' => 'UTS',
             'uas' => 'UAS',
             'tugas' => 'Tugas',
-            default => ucfirst($request->kategori),
+            default => $request->kategori,
         };
+
         $mapelNama = $mapel?->nama_mapel ?? 'Mapel';
         $kelasNama = $kelas?->nama_kelas ?? 'Kelas';
 
-        $admins = User::where('role', 'admin')->where('status', 'active')->get();
-        $title = "Nilai Baru Masuk: {$kategoriLabel} {$mapelNama}";
-        $message = "Guru {$guru->nama_lengkap} telah memasukkan {$kategoriLabel} {$mapelNama} untuk {$kelasNama}. Silakan periksa/verifikasi nilai.";
-        foreach ($admins as $admin) {
-            $admin->addNotification(
-                $title,
-                $message,
-                'warning',
-                'fa-clipboard-check',
-                route('admin.nilai.index') . '?kelas_id=' . $request->kelas_id . '&mapel_id=' . $request->mapel_id
-            );
-        }
+        $admins = User::where('role', 'admin')
+            ->where('status', 'active')
+            ->get();
 
-        if (count($affectedSiswaIds) > 0) {
-            $siswasNotif = Siswa::whereIn('id', $affectedSiswaIds)->with('user')->get();
-            $titleSiswa = "Nilai Baru: {$kategoriLabel} {$mapelNama}";
-            $messageSiswa = "Nilai {$kategoriLabel} {$mapelNama} kelas {$kelasNama} sudah tersedia. Silakan cek nilai Anda.";
-            foreach ($siswasNotif as $s) {
-                if ($s->user && $s->user->status === 'active') {
-                    $s->user->addNotification(
-                        $titleSiswa,
-                        $messageSiswa,
-                        'info',
-                        'fa-chart-line',
-                        route('siswa.nilai')
-                    );
-                }
+        $title = "Nilai Baru Masuk: {$kategoriLabel} {$mapelNama}";
+
+        $message = "Guru {$guru->nama_lengkap} telah memasukkan {$kategoriLabel} {$mapelNama} untuk {$kelasNama}. Silakan periksa/verifikasi nilai.";
+
+        foreach ($admins as $admin) {
+
+            try {
+                $admin->addNotification(
+                    $title,
+                    $message,
+                    'warning',
+                    'fa-clipboard-check',
+                    route('admin.nilai.index') .
+                    '?kelas_id=' . $request->kelas_id .
+                    '&mapel_id=' . $request->mapel_id
+                );
+            } catch (\Throwable $e) {
+
+                \Log::error('Gagal membuat notifikasi admin', [
+                    'error' => $e->getMessage(),
+                    'admin_id' => $admin->id,
+                ]);
+
             }
         }
 
-        return redirect()->back()->with('success', 'Nilai berhasil disimpan.');
+    } catch (\Throwable $e) {
+
+        \Log::error('Gagal proses notifikasi nilai', [
+            'error' => $e->getMessage(),
+        ]);
     }
+
+    return redirect()->back()->with(
+        'success',
+        'Nilai berhasil disimpan.'
+    );
+}
 
     public function jadwal()
     {
