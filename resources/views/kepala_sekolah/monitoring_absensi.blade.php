@@ -41,22 +41,22 @@
                     <td class="px-6 py-4">
                         <div class="flex items-center">
                             <div class="w-8 h-8 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mr-3 font-bold text-xs">
-                                {{ substr($a->siswa->nama_lengkap, 0, 1) }}
+                                {{ optional($a->siswa)->nama_lengkap ? substr($a->siswa->nama_lengkap, 0, 1) : '?' }}
                             </div>
                             <div>
-                                <p class="text-sm font-bold text-gray-800">{{ $a->siswa->nama_lengkap }}</p>
-                                <p class="text-[10px] text-gray-500">{{ $a->siswa->nisn }}</p>
+                                <p class="text-sm font-bold text-gray-800">{{ optional($a->siswa)->nama_lengkap ?? '-' }}</p>
+                                <p class="text-[10px] text-gray-500">{{ optional($a->siswa)->nisn ?? '-' }}</p>
                             </div>
                         </div>
                     </td>
                     <td class="px-6 py-4">
-                        <span class="text-sm font-medium text-gray-700">{{ $a->jadwal->mapel->nama_mapel }}</span>
+                        <span class="text-sm font-medium text-gray-700">{{ optional($a->mapel)->nama_mapel ?? '-' }}</span>
                     </td>
                     <td class="px-6 py-4 text-sm text-gray-600">
-                        {{ $a->jadwal->kelas->nama_kelas }}
+                        {{ optional($a->kelas)->nama_kelas ?? '-' }}
                     </td>
                     <td class="px-6 py-4 text-sm text-gray-500">
-                        {{ $a->created_at->format('H:i') }} WIB
+                        {{ optional($a->created_at)->format('H:i') ?? '-' }} WIB
                     </td>
                     <td class="px-6 py-4">
                         @php

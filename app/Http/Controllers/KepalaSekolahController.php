@@ -41,7 +41,7 @@ class KepalaSekolahController extends Controller
 
     public function monitoringAbsensi(Request $request)
     {
-        $query = Absensi::with(['siswa', 'jadwal.mapel', 'jadwal.kelas']);
+        $query = Absensi::with(['siswa', 'mapel', 'kelas', 'guru']);
 
         if ($request->filled('tanggal')) {
             $query->whereDate('tanggal', $request->tanggal);
