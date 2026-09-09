@@ -14,19 +14,17 @@ class KelasSeeder extends Seeder
         $guruIndex = 0;
 
         $tingkats = ['10', '11', '12'];
-        $jurusans = ['IPA', 'IPS'];
-        
-        // Create 1 class for each combination (Total 6 classes)
+        $rombels = ['1', '2'];
+
         foreach ($tingkats as $tingkat) {
-            foreach ($jurusans as $jurusan) {
+            foreach ($rombels as $rombel) {
                 $namaKelas = '';
                 if ($tingkat == '10') $namaKelas = 'X';
                 elseif ($tingkat == '11') $namaKelas = 'XI';
                 elseif ($tingkat == '12') $namaKelas = 'XII';
-                
-                $namaKelas .= ' ' . $jurusan;
 
-                // Assign Wali Kelas if available
+                $namaKelas .= '-' . $rombel;
+
                 $waliKelasId = null;
                 if (isset($gurus[$guruIndex])) {
                     $waliKelasId = $gurus[$guruIndex]->id;
@@ -36,7 +34,7 @@ class KelasSeeder extends Seeder
                 Kelas::create([
                     'nama_kelas' => $namaKelas,
                     'tingkat' => $tingkat,
-                    'jurusan' => $jurusan,
+                    'jurusan' => $rombel,
                     'wali_kelas_id' => $waliKelasId,
                 ]);
             }

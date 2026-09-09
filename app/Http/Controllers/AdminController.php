@@ -383,8 +383,9 @@ class AdminController extends Controller
 
         // Filter by Jurusan
         if ($request->has('jurusan') && $request->jurusan != '') {
-            $query->whereHas('kelas', function ($q) use ($request) {
-                $q->where('jurusan', $request->jurusan);
+            $searchJurusan = $request->jurusan;
+            $query->whereHas('kelas', function ($q) use ($searchJurusan) {
+                $q->where('jurusan', 'like', "%{$searchJurusan}%");
             });
         }
 
@@ -565,7 +566,7 @@ class AdminController extends Controller
 
         $sheet->fromArray([
             ['nama_lengkap', 'nisn', 'nis', 'email', 'password', 'kelas', 'jenis_kelamin', 'no_hp_ortu'],
-            ['Opan Sihombing', '0061257875', '8039', 'opan.siswa01@sekolah.sch.id', '0061257875', 'XII IPA', 'L', '081234567890'],
+            ['Opan Sihombing', '0061257875', '8039', 'opan.siswa01@sekolah.sch.id', '0061257875', 'XII-1', 'L', '081234567890'],
         ]);
 
         $sheet->getStyle('1:1')->getFont()->setBold(true);
@@ -896,7 +897,8 @@ class AdminController extends Controller
 
         // Filter by Jurusan
         if ($request->has('jurusan') && $request->jurusan != '') {
-            $query->where('jurusan', $request->jurusan);
+            $searchJurusan = $request->jurusan;
+            $query->where('jurusan', 'like', "%{$searchJurusan}%");
         }
 
         $kelases = $query->paginate(10);
@@ -941,7 +943,7 @@ class AdminController extends Controller
         $request->validate([
             'nama_kelas' => 'required|string|max:255',
             'tingkat' => 'required|in:10,11,12',
-            'jurusan' => 'required|in:IPA,IPS,BAHASA',
+            'jurusan' => 'required|string|max:50',
             'wali_kelas_id' => 'nullable|exists:gurus,id',
         ]);
 
@@ -963,7 +965,7 @@ class AdminController extends Controller
         $request->validate([
             'nama_kelas' => 'required|string|max:255',
             'tingkat' => 'required|in:10,11,12',
-            'jurusan' => 'required|in:IPA,IPS,BAHASA',
+            'jurusan' => 'required|string|max:50',
             'wali_kelas_id' => 'nullable|exists:gurus,id',
         ]);
 

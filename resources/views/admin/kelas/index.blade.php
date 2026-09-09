@@ -25,12 +25,7 @@
                     <option value="11" {{ request('tingkat') == '11' ? 'selected' : '' }}>Kelas XI</option>
                     <option value="12" {{ request('tingkat') == '12' ? 'selected' : '' }}>Kelas XII</option>
                 </select>
-                <select name="jurusan" onchange="this.form.submit()" class="border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
-                    <option value="">Semua Jurusan</option>
-                    <option value="IPA" {{ request('jurusan') == 'IPA' ? 'selected' : '' }}>IPA</option>
-                    <option value="IPS" {{ request('jurusan') == 'IPS' ? 'selected' : '' }}>IPS</option>
-                    <option value="BAHASA" {{ request('jurusan') == 'BAHASA' ? 'selected' : '' }}>BAHASA</option>
-                </select>
+                <input type="text" name="jurusan" value="{{ request('jurusan') }}" placeholder="Cari Jurusan/Rombel..." onkeydown="if(event.key === 'Enter') this.form.submit()" class="border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
             </div>
         </form>
 
@@ -106,7 +101,7 @@
                 <div class="space-y-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Nama Kelas *</label>
-                        <input type="text" name="nama_kelas" required placeholder="Contoh: X IPA 1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2">
+                        <input type="text" name="nama_kelas" required placeholder="Contoh: X-1, X-2, XI-1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2">
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
@@ -118,12 +113,8 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">Jurusan *</label>
-                            <select name="jurusan" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2">
-                                <option value="IPA">IPA</option>
-                                <option value="IPS">IPS</option>
-                                <option value="BAHASA">BAHASA</option>
-                            </select>
+                            <label class="block text-sm font-medium text-gray-700">Jurusan/Rombel *</label>
+                            <input type="text" name="jurusan" required placeholder="Contoh: 1, 2, 3, dst" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2">
                         </div>
                     </div>
                     <div>
@@ -171,12 +162,8 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">Jurusan *</label>
-                            <select id="edit_jurusan" name="jurusan" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2">
-                                <option value="IPA">IPA</option>
-                                <option value="IPS">IPS</option>
-                                <option value="BAHASA">BAHASA</option>
-                            </select>
+                            <label class="block text-sm font-medium text-gray-700">Jurusan/Rombel *</label>
+                            <input type="text" id="edit_jurusan" name="jurusan" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2">
                         </div>
                     </div>
                     <div>
